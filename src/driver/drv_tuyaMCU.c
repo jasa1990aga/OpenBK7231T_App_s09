@@ -66,6 +66,11 @@ void TuyaMCU_RunFrame();
 static byte g_tuyaMCUConfirmationsToSend_0x08 = 0;
 static byte g_tuyaMCUConfirmationsToSend_0x05 = 0;
 static byte g_resetWiFiEvents = 0;
+// debug: collect TX bytes and log them as one line per frame
+static void TX_Put(byte b) {
+	UART_SendByte(b);
+	addLogAdv(LOG_INFO, LOG_FEATURE_TUYAMCU, "TX: %02X", b);
+}
 
 #define OBKTM_FLAG_DPCACHE 1
 #define OBKTM_FLAG_NOREAD 2
@@ -302,11 +307,11 @@ bool TUYAMCU_SendFromQueue() {
 	toUse = tm_sendPackets;
 	tm_sendPackets = toUse->next;
 
-	UART_SendByte(0x55);
-	UART_SendByte(0xAA);
-	UART_SendByte(0x00);
+	TX_Put(0x55);
+	TX_Put(0xAA);
+	TX_Put(0x00);
 	for (int i = 0; i < toUse->size; i++) {
-		UART_SendByte(toUse->data[i]);
+		TX_Put(toUse->data[i]);
 	}
 
 	toUse->next = tm_emptyPackets;
@@ -468,18 +473,18 @@ void TuyaMCU_SendCommandWithData(byte cmdType, byte* data, int payload_len) {
 		p->data[3+payload_len] = check_sum;
 	}
 	else {
-		UART_SendByte(0x55);
-		UART_SendByte(0xAA);
-		UART_SendByte(0x00);         // version 00
-		UART_SendByte(cmdType);         // version 00
-		UART_SendByte(payload_len >> 8);      // following data length (Hi)
-		UART_SendByte(payload_len & 0xFF);    // following data length (Lo)
+		TX_Put(0x55);
+		TX_Put(0xAA);
+		TX_Put(0x00);         // version 00
+		TX_Put(cmdType);         // version 00
+		TX_Put(payload_len >> 8);      // following data length (Hi)
+		TX_Put(payload_len & 0xFF);    // following data length (Lo)
 		for (i = 0; i < payload_len; i++) {
 			byte b = data[i];
 			check_sum += b;
-			UART_SendByte(b);
+			TX_Put(b);
 		}
-		UART_SendByte(check_sum);
+		TX_Put(check_sum);
 	}
 }
 int TuyaMCU_AppendStateInternal(byte *buffer, int bufferMax, int currentLen, uint8_t id, int8_t type, void* value, int dataLen) {
@@ -804,7 +809,7 @@ void TuyaMCU_Send_RawBuffer(byte* data, int len) {
 	int i;
 
 	for (i = 0; i < len; i++) {
-		UART_SendByte(data[i]);
+		TX_Put(data[i]);
 	}
 }
 //battery-powered water sensor with TyuaMCU request to get somo response
@@ -949,9 +954,9 @@ void TuyaMCU_Send(byte* data, int size) {
 	for (i = 0; i < size; i++) {
 		byte b = data[i];
 		check_sum += b;
-		UART_SendByte(b);
+		TX_Put(b);
 	}
-	UART_SendByte(check_sum);
+	TX_Put(check_sum);
 
 	addLogAdv(LOG_INFO, LOG_FEATURE_TUYAMCU, "We sent %i bytes to Tuya MCU", size + 1);
 }
