@@ -1,8 +1,13 @@
 name: Build BK7231N TuyaMCU
 
 on:
-  workflow_dispatch:   # запуск вручну з вкладки Actions
-
+  workflow_dispatch:
+  push:
+    branches:
+      - '**'
+  pull_request:
+    branches:
+      - '**'
 jobs:
   refs:
     runs-on: ubuntu-22.04
