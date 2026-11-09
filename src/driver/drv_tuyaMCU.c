@@ -786,7 +786,7 @@ void TuyaMCU_Send_SetTime(struct tm* pTime, bool bSensorMode) {
 	}
 	if (bSensorMode) {
 		// https://developer.tuya.com/en/docs/iot/tuyacloudlowpoweruniversalserialaccessprotocol?id=K95afs9h4tjjh
-		TuyaMCU_SendCommandWithData(0x06, payload_buffer, 8);
+		TuyaMCU_SendCommandWithData(0x1C, payload_buffer, 8);
 	}
 	else {
 		TuyaMCU_SendCommandWithData(TUYA_CMD_SET_TIME, payload_buffer, 8);
