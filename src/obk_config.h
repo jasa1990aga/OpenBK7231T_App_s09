@@ -1,5 +1,5 @@
 //////////////////////////////////////////////////////
-// specify which parts of the app we wish to be active
+// specify which parts of the app we wish to be active11
 //
 #ifndef OBK_CONFIG_H
 #define OBK_CONFIG_H
