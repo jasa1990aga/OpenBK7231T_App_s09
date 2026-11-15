@@ -646,6 +646,84 @@ extern "C" commandResult_t IR_AC_Cmd(const void *context, const char *cmd, const
 }
 #endif //ENABLE_IRAC
 
+extern "C" commandResult_t IR_SendRaw_Cmd(const void *context, const char *cmd, const char *args_in, int cmdFlags) {
+	if (!args_in || !*args_in) {
+		ADDLOG_ERROR(LOG_FEATURE_IR, (char *)"IRSendRaw: no arguments");
+		return CMD_RES_NOT_ENOUGH_ARGUMENTS;
+	}
+	if (!pIRsend) {
+		ADDLOG_ERROR(LOG_FEATURE_IR, (char *)"IRSendRaw: IRsend not initialized (check pin role)");
+		return CMD_RES_ERROR;
+	}
+
+	const char *p = args_in;
+	while (*p == ' ' || *p == '\t') p++;
+
+	uint16_t freq = 38; // Частота в кГц за замовчуванням
+	if (*p == 'f' || *p == 'F') {
+		freq = (uint16_t)strtol(p + 1, (char**)&p, 10);
+	}
+
+	// Попередній підрахунок кількості елементів
+	uint16_t maxCount = 0;
+	const char *scan = p;
+	while (*scan) {
+		while (*scan == ' ' || *scan == ',' || *scan == '\t' || *scan == '+' || *scan == '-') scan++;
+		if (!*scan) break;
+		char *endptr = NULL;
+		long val = strtol(scan, &endptr, 10);
+		if (scan == endptr) { scan++; continue; }
+		scan = endptr;
+		if (val > 0) maxCount++;
+	}
+
+	if (maxCount == 0) {
+		ADDLOG_ERROR(LOG_FEATURE_IR, (char *)"IRSendRaw: no valid timings found");
+		return CMD_RES_BAD_ARGUMENT;
+	}
+
+	uint16_t *rawData = (uint16_t *)malloc(maxCount * sizeof(uint16_t));
+	if (!rawData) {
+		ADDLOG_ERROR(LOG_FEATURE_IR, (char *)"IRSendRaw: out of memory for %d items", maxCount);
+		return CMD_RES_ERROR;
+	}
+
+	uint16_t count = 0;
+	while (*p && count < maxCount) {
+		while (*p == ' ' || *p == ',' || *p == '\t' || *p == '+' || *p == '-') p++;
+		if (!*p) break;
+		char *endptr = NULL;
+		long val = strtol(p, &endptr, 10);
+		if (p == endptr) { p++; continue; }
+		p = endptr;
+		if (val > 0) {
+			if (val > 65535) val = 65535;
+			rawData[count++] = (uint16_t)val;
+		}
+	}
+
+	// Відправка без ліміту SEND_MAXBITS з очікуванням звільнення буфера
+	pIRsend->enableIROut(freq);
+	for (uint16_t i = 0; i < count; i++) {
+		int safety = 0;
+		while (pIRsend->timecount >= (SEND_MAXBITS * 2 - 10) && safety < 200) {
+			rtos_delay_milliseconds(5);
+			safety++;
+		}
+		if (i & 1) {
+			pIRsend->space(rawData[i]);
+		} else {
+			pIRsend->mark(rawData[i]);
+		}
+	}
+
+	pIRsend->delay(100);
+	free(rawData);
+
+	ADDLOG_INFO(LOG_FEATURE_IR, (char *)"IRSendRaw: sent %d timings at %dkHz", count, freq);
+	return CMD_RES_OK;
+}
+
 
 // test routine to start IR RX and TX
 // currently fixed pins for testing.
@@ -724,6 +802,7 @@ extern "C" void DRV_IR_Init() {
 			//cmddetail:"fn":"IR_Param","file":"driver/drv_ir_new.cpp","requires":"ENABLE_DRIVER_IRREMOTEESP (IRremoteESP8266)",
 			//cmddetail:"examples":""}
 			CMD_RegisterCommand("IRParam",IR_Param, NULL);
+			CMD_RegisterCommand("IRSendRaw", IR_SendRaw_Cmd, NULL);
 		}
 	}
 	if ((pin >= 0) || (txpin >= 0)) {
