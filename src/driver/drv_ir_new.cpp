@@ -381,7 +381,7 @@ extern "C" commandResult_t IR_Send_Cmd(const void *context, const char *cmd, con
 		}
 		if(*p==',')
 		{
-			*p=' ';
+			*p='\0';
 			decode_type_t protocol = strToDecodeType(args);
 			p++;
 			char *_bits=p;
@@ -390,7 +390,7 @@ extern "C" commandResult_t IR_Send_Cmd(const void *context, const char *cmd, con
 			}
 			if(*p==',')
 			{
-				*p=' ';
+				*p='\0';
 				uint16_t bits = (uint16_t)strtol(_bits,NULL,10);
 				p++;
 				if(bits<=64)
@@ -424,7 +424,7 @@ extern "C" commandResult_t IR_Send_Cmd(const void *context, const char *cmd, con
  		return CMD_RES_BAD_ARGUMENT;
 	}
 
-	*p=' ';
+	*p='\0';
 	decode_type_t protocol = strToDecodeType(args);
 	if(hasACState(protocol))
 	{
@@ -660,7 +660,7 @@ extern "C" commandResult_t IR_SendRaw_Cmd(const void *context, const char *cmd, 
 	}
 
 	const char *p = args_in;
-	while (*p == ' ' || *p == '	') p++;
+	while (*p == ' ' || *p == '\t') p++;
 
 	uint16_t freq = 38; // Частота в кГц за замовчуванням
 	if (*p == 'f' || *p == 'F') {
@@ -678,7 +678,7 @@ extern "C" commandResult_t IR_SendRaw_Cmd(const void *context, const char *cmd, 
 	uint16_t maxCount = 0;
 	const char *scan = p;
 	while (*scan) {
-		while (*scan == ' ' || *scan == ',' || *scan == '	' || *scan == '+' || *scan == '-') scan++;
+		while (*scan == ' ' || *scan == ',' || *scan == '\t' || *scan == '+' || *scan == '-') scan++;
 		if (!*scan) break;
 		char *endptr = NULL;
 		long val = strtol(scan, &endptr, 10);
@@ -700,7 +700,7 @@ extern "C" commandResult_t IR_SendRaw_Cmd(const void *context, const char *cmd, 
 
 	uint16_t count = 0;
 	while (*p && count < maxCount) {
-		while (*p == ' ' || *p == ',' || *p == '	' || *p == '+' || *p == '-') p++;
+		while (*p == ' ' || *p == ',' || *p == '\t' || *p == '+' || *p == '-') p++;
 		if (!*p) break;
 		char *endptr = NULL;
 		long val = strtol(p, &endptr, 10);
@@ -942,7 +942,7 @@ extern "C" void DRV_IR_RunFrame() {
 					// {"IrReceived":{"Protocol":"RC_5","Bits":0x1,"Data":"0xC"}}
 					//
 					String _data=resultToHexidecimal(&results);
-					snprintf(out, sizeof(out), "{"IrReceived":{"Protocol":"%s","Bits":%i,"Data":"%s"}}",
+					snprintf(out, sizeof(out), "{\"IrReceived\":{\"Protocol\":\"%s\",\"Bits\":%i,\"Data\":\"%s\"}}",
 						proto_name.c_str(), (int)results.bits, _data.c_str());
 					MQTT_PublishMain_StringString("RESULT", out, OBK_PUBLISH_FLAG_FORCE_REMOVE_GET);
 				}
